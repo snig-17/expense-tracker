@@ -1,8 +1,8 @@
-import { addDoc, collection, onSnapshot, orderBy, query, Timestamp } from 'firebase/firestore';
-import React, { useEffect, useState } from 'react';
-import { Alert, Button, FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
+import { addDoc, collection, Timestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import { Alert, Button, StyleSheet, Text, TextInput, View, FlatList, Dimensions } from 'react-native';
 import { db } from '../firebase.js'; // adjust path if needed
- 
+import { PieChart } from 'react-native-chart-kit';
 
 export default function Index() {
   const [amount, setAmount] = useState('');
@@ -42,6 +42,20 @@ useEffect(() => {
   return () => unsubscribe();
 }, []);
 
+function getRandomColor() {
+  return `hsl(${Math.floor(Math.random() * 360)}, 70%, 60%)`;
+}
+
+const chartData = expenses.reduce((acc, expense) => {
+  const found = acc.find(item => item.name === expense.category);
+  if (found) {
+    found.amount += expense.amount;
+  } else {
+    acc.push({ name: expense.category, amount: expense.amount, color: getRandomColor(), legendFontColor: '#333', legendFontSize: 14 });
+  }
+  return acc;
+}, []);
+
   return (
     <View style={styles.container}>
     <Text style={styles.heading}>Smart Expense Tracker</Text>
@@ -69,6 +83,18 @@ useEffect(() => {
     />
 
     <Button title="Save Expense" onPress={handleSave} />
+
+<Text style={styles.subHeading}>Spending by Category</Text>
+<PieChart
+  data={chartData}
+  width={Dimensions.get('window').width - 40}
+  height={220}
+  accessor="amount"
+  backgroundColor="transparent"
+  paddingLeft="15"
+  absolute
+/>
+
     <Text style={styles.subHeading}>Saved Expenses</Text>
 
 <FlatList
