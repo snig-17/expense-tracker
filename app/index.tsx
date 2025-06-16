@@ -1,12 +1,14 @@
-import { addDoc, collection, Timestamp } from 'firebase/firestore';
-import React, { useState } from 'react';
-import { Alert, Button, StyleSheet, Text, TextInput, View } from 'react-native';
+import { addDoc, collection, onSnapshot, orderBy, query, Timestamp } from 'firebase/firestore';
+import React, { useEffect, useState } from 'react';
+import { Alert, Button, FlatList, StyleSheet, Text, TextInput, View } from 'react-native';
 import { db } from '../firebase.js'; // adjust path if needed
+ 
 
 export default function Index() {
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
+  const [expenses, setExpenses] = useState([]);
 
 const handleSave = async () => {
   if (!amount || !category) {
@@ -26,6 +28,20 @@ const handleSave = async () => {
   timestamp: Timestamp.now()
 });
 };
+
+useEffect(() => {
+  const q = query(collection(db, 'expenses'), orderBy('timestamp', 'desc'));
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const data = snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    setExpenses(data);
+  });
+
+  return () => unsubscribe();
+}, []);
+
   return (
     <View style={styles.container}>
     <Text style={styles.heading}>Smart Expense Tracker</Text>
@@ -53,6 +69,18 @@ const handleSave = async () => {
     />
 
     <Button title="Save Expense" onPress={handleSave} />
+    <Text style={styles.subHeading}>Saved Expenses</Text>
+
+<FlatList
+  data={expenses}
+  keyExtractor={(item) => item.id}
+  renderItem={({ item }) => (
+    <View style={styles.expenseItem}>
+      <Text style={styles.expenseText}>₹{item.amount} - {item.category}</Text>
+      <Text style={styles.expenseSub}>{item.description}</Text>
+    </View>
+  )}
+/>
   </View>
   );
 }
@@ -78,5 +106,24 @@ const handleSave = async () => {
     paddingHorizontal: 12,
     fontSize: 16,
   },
+  subHeading: {
+  fontSize: 18,
+  marginTop: 24,
+  marginBottom: 8,
+  fontWeight: '600',
+},
+expenseItem: {
+  paddingVertical: 8,
+  borderBottomWidth: 1,
+  borderColor: '#ddd'
+},
+expenseText: {
+  fontSize: 16,
+  fontWeight: 'bold'
+},
+expenseSub: {
+  fontSize: 14,
+  color: '#666'
+}
 });
 
