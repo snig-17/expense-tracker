@@ -1,8 +1,8 @@
 import { addDoc, collection, Timestamp, onSnapshot, query, orderBy } from 'firebase/firestore';
 import React, { useState, useEffect } from 'react';
-import { Alert, Button, StyleSheet, Text, TextInput, View, FlatList, Dimensions } from 'react-native';
+import { Alert, Button, StyleSheet, Text, TextInput, View, FlatList, Dimensions, ScrollView } from 'react-native';
 import { db } from '../firebase.js'; // adjust path if needed
-import { PieChart } from 'react-native-chart-kit';
+import { PieChart, LineChart } from 'react-native-chart-kit';
 
 export default function Index() {
   const [amount, setAmount] = useState('');
@@ -56,8 +56,24 @@ const chartData = expenses.reduce((acc, expense) => {
   return acc;
 }, []);
 
+const lineChartData = {
+  labels: [],
+  datasets: [{ data: [] }]
+};
+
+const dailyTotals: { [key: string]: number } = {};
+
+expenses.forEach(expense => {
+  const date = new Date(expense.timestamp.seconds * 1000).toLocaleDateString();
+  dailyTotals[date] = (dailyTotals[date] || 0) + expense.amount;
+});
+
+lineChartData.labels = Object.keys(dailyTotals);
+lineChartData.datasets[0].data = Object.values(dailyTotals);
+
+
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.container}>
     <Text style={styles.heading}>Smart Expense Tracker</Text>
 
     <TextInput
@@ -93,7 +109,44 @@ const chartData = expenses.reduce((acc, expense) => {
   backgroundColor="transparent"
   paddingLeft="15"
   absolute
+  chartConfig={{
+    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+  }}
 />
+<Text style={styles.subHeading}>Daily Spending Trend</Text>
+<LineChart
+  data={lineChartData}
+  width={Dimensions.get('window').width - 40}
+  height={220}
+  yAxisLabel="₹"
+  chartConfig={{
+    backgroundColor: '#ffffff',
+    backgroundGradientFrom: '#ffffff',
+    backgroundGradientTo: '#ffffff',
+    decimalPlaces: 2,
+    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+    style: {
+      borderRadius: 8,
+    },
+    propsForDots: {
+      r: '4',
+      strokeWidth: '2',
+      stroke: '#ffa726',
+    },
+  }}
+  formatXLabel={(label) => label.slice(0, 5)}
+  bezier
+  withDots
+  withShadow
+  withInnerLines
+  style={{
+    marginVertical: 8,
+    borderRadius: 8,
+  }}
+/>
+
 
     <Text style={styles.subHeading}>Saved Expenses</Text>
 
@@ -107,15 +160,17 @@ const chartData = expenses.reduce((acc, expense) => {
     </View>
   )}
 />
-  </View>
+    </ScrollView>
   );
 }
   const styles = StyleSheet.create({
-  container: {
+  scrollContainer: {
     flex: 1,
+    backgroundColor: '#fff',
+  },
+  container: {
     padding: 24,
     backgroundColor: '#fff',
-    justifyContent: 'center',
   },
   heading: {
     fontSize: 24,
@@ -152,4 +207,3 @@ expenseSub: {
   color: '#666'
 }
 });
-
