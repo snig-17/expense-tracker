@@ -67,7 +67,7 @@ Below are some visual examples of the app in action. To add your own screenshots
 
 | Home Page                         | Pie Chart                          | Line Chart                         |
 |----------------------------------|------------------------------------|------------------------------------|
-| ![Home](./assets/screens/home.png) | ![Pie](./assets/screens/pie.png)   | ![Line](./assets/screens/line.png) |
+| ![Home](./assets/images/home.png) | ![Pie](./assets/images/pie.png)   | ![Line](./assets/images/line.png) |
 
 > 📂 Place your screenshots in the `/assets/screens/` folder or update the paths above to where your images are stored.
 
