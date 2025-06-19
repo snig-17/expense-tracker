@@ -4,12 +4,16 @@ import { Alert, Button, StyleSheet, Text, TextInput, View, FlatList, Dimensions,
 import { Picker } from '@react-native-picker/picker';
 import { db } from '../firebase.js'; // adjust path if needed
 import { PieChart, LineChart } from 'react-native-chart-kit';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 export default function Index() {
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
   const [description, setDescription] = useState('');
   const [expenses, setExpenses] = useState([]);
+  const [budget, setBudget] = useState('');
+  const [currentBudget, setCurrentBudget] = useState(0);
+  const [totalSpent, setTotalSpent] = useState(0);
   const fakeExpenses = [
   { amount: 200, category: 'Food', timestamp: { seconds: 1718580000 } }, // June 17
   { amount: 300, category: 'Travel', timestamp: { seconds: 1718493600 } }, // June 16
@@ -35,6 +39,14 @@ const handleSave = async () => {
 });
 };
 
+const saveBudget = async () => {
+  const docRef = doc(db, 'settings', 'monthlyBudget');
+  await setDoc(docRef, { amount: parseFloat(budget) });
+  setCurrentBudget(parseFloat(budget));
+  setBudget('');
+  Alert.alert('Budget Saved', `New monthly budget set to ₹${budget}`);
+};
+
 useEffect(() => {
   const q = query(collection(db, 'expenses'), orderBy('timestamp', 'desc'));
   const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -46,6 +58,22 @@ useEffect(() => {
   });
 
   return () => unsubscribe();
+}, []);
+
+useEffect(() => {
+  const total = expenses.reduce((sum, item) => sum + item.amount, 0);
+  setTotalSpent(total);
+}, [expenses]);
+
+useEffect(() => {
+  const fetchBudget = async () => {
+    const docRef = doc(db, 'settings', 'monthlyBudget');
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      setCurrentBudget(snap.data().amount);
+    }
+  };
+  fetchBudget();
 }, []);
 
 const categoryColors: { [key: string]: string } = {
@@ -123,6 +151,21 @@ lineChartData.datasets[0].data = Object.values(dailyTotals);
       <Text style={styles.saveButtonText}>Save Expense</Text>
     </TouchableOpacity>
 
+    <Text style={styles.subHeading}>Monthly Budget</Text>
+    <TextInput
+      style={styles.input}
+      placeholder="Enter Monthly Budget (₹)"
+      keyboardType="numeric"
+      value={budget}
+      onChangeText={setBudget}
+      placeholderTextColor="#BFA6FF"
+    />
+    <TouchableOpacity onPress={saveBudget} style={styles.saveButton}>
+      <Text style={styles.saveButtonText}>Save Budget</Text>
+    </TouchableOpacity>
+    <Text style={styles.expenseSub}>Current Budget: ₹{currentBudget}</Text>
+    <Text style={styles.expenseSub}>Remaining: ₹{currentBudget - totalSpent}</Text>
+
 <View style={styles.chartRow}>
   <View style={{ alignItems: 'center' }}>
     <Text style={styles.subHeading}>Spending by Category</Text>
@@ -135,8 +178,8 @@ lineChartData.datasets[0].data = Object.values(dailyTotals);
       paddingLeft="10"
       absolute
       chartConfig={{
-        color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-        labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+        color: (opacity = 1) => `rgba(141, 155, 255, ${opacity})`,
+        labelColor: (opacity = 1) => `rgba(101, 90, 141, ${opacity})`,
       }}
     />
   </View>
@@ -151,27 +194,20 @@ lineChartData.datasets[0].data = Object.values(dailyTotals);
         yAxisLabel="₹"
         formatXLabel={(label) => label.slice(0, 5)}
         chartConfig={{
-          backgroundColor: '#FFF5FB',
-          backgroundGradientFrom: '#FFF5FB',
-          backgroundGradientTo: '#FFF5FB',
+          backgroundColor: '#ffffff',
+          backgroundGradientFrom: '#ffffff',
+          backgroundGradientTo: '#ffffff',
           decimalPlaces: 2,
-          color: (opacity = 1) => `rgba(173, 216, 230, ${opacity})`, // pastel blue
-          labelColor: (opacity = 1) => `rgba(51, 51, 51, ${opacity})`,
-          propsForLabels: {
-            fontSize: 12,
-          },
-          style: {
-            borderRadius: 8,
-            backgroundColor: '#ffffff',
-          },
+          color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+          labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
           propsForDots: {
-            r: '5',
+            r: '4',
             strokeWidth: '2',
-            stroke: '#A4D4FF', // light pastel blue
-            fill: '#A4D4FF'
+            stroke: '#ffa726',
           },
-          fillShadowGradient: '#A4D4FF',
-          fillShadowGradientOpacity: 0.3,
+          propsForBackgroundLines: {
+            stroke: '#e3e3e3',
+          },
         }}
         withDots
         withShadow
@@ -180,23 +216,6 @@ lineChartData.datasets[0].data = Object.values(dailyTotals);
         withVerticalLabels
         withHorizontalLabels
         bezier
-        renderDotContent={({ x, y, index }) => {
-          if (index === 0) {
-            return (
-              <View
-                style={{
-                  position: 'absolute',
-                  left: 0,
-                  top: y,
-                  width: (Dimensions.get('window').width - 60) / 2,
-                  height: 1,
-                  backgroundColor: '#000',
-                }}
-              />
-            );
-          }
-          return null;
-        }}
         style={{
           marginVertical: 8,
           borderRadius: 8,
